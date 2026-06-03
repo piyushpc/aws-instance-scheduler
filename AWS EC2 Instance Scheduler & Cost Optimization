@@ -1,0 +1,55 @@
+Overview
+Designed and implemented an automated EC2 Instance Scheduler solution to reduce AWS infrastructure costs by automatically starting and stopping non-production instances based on predefined schedules.
+Features
+Automated EC2 Start/Stop Operations
+Scheduled execution using Amazon EventBridge
+Serverless architecture using AWS Lambda
+Tag-based instance management
+CloudWatch logging for monitoring and troubleshooting
+Cost optimization for development and testing environments
+Scalable across multiple AWS accounts and regions
+
+Architecture
+Amazon EventBridge
+        │
+        ▼
+AWS Lambda Function
+        │
+        ▼
+EC2 API Calls
+(Start / Stop Instances)
+        │
+        ▼
+CloudWatch Logs
+
+EventBridge Configuration
+Start Schedule
+Rule Name: ec2-start-scheduler
+
+Cron Expression:
+cron(30 3 ? * MON-FRI *)
+
+Execution Time:
+09:00 AM IST (Monday–Friday)
+Stop Schedule
+Rule Name: ec2-stop-scheduler
+
+Cron Expression:
+cron(30 13 ? * MON-FRI *)
+
+Execution Time:
+07:00 PM IST (Monday–Friday)
+(Adjust according to your actual schedule.)
+Lambda Function Responsibilities
+Identify instances based on tags.
+Verify current instance state.
+Start stopped instances during business hours.
+Stop running instances after business hours.
+Log all actions to CloudWatch Logs.
+Handle exceptions and API failures gracefully.
+AWS Services Used
+AWS Lambda
+Amazon EventBridge
+Amazon EC2
+IAM
+Amazon CloudWatch
