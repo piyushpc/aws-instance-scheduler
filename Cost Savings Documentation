@@ -1,3 +1,9 @@
+Problem Statement
+Development and testing servers were running 24/7, leading to unnecessary AWS costs during non-working hours.
+Solution
+Implemented an automated scheduling mechanism to shut down non-production EC2 instances outside business hours and restart them automatically when required.
+
+
 Before Implementation
 Instances Running:
 24 Hours/Day
