@@ -1,0 +1,127 @@
+import json
+import boto3
+import datetime
+import logging
+from botocore.exceptions import BotoCoreError, ClientError
+
+# Initialize the EC2 and SNS clients
+ec2 = boto3.client('ec2')
+sns = boto3.client('sns')
+SNS_TOPIC_ARN = 'arn:aws:sns:ap-south-1:152031363284:EC2SchedulerAlerts'
+
+# Set up logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Define the instances allowed to start on Sundays
+SUNDAY_ALLOWED_INSTANCES = [
+    "i-0f1e9d40ad6517f8b",
+    "i-02e77f9674865266f"
+]
+
+def get_instance_status(instance_ids):
+    try:
+        response = ec2.describe_instance_status(InstanceIds=instance_ids)
+        statuses = [
+            {
+                'InstanceId': status['InstanceId'],
+                'State': status['InstanceState']['Name'],
+                'Status': status['InstanceStatus']['Status']
+            }
+            for status in response['InstanceStatuses']
+        ]
+        return statuses
+    except Exception as e:
+        logger.error(f"Error fetching instance statuses: {str(e)}")
+        return f"Error fetching instance statuses: {str(e)}"
+
+def send_alert(subject, message):
+    try:
+        sns.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Subject=subject,
+            Message=message
+        )
+    except Exception as sns_error:
+        logger.error(f"Failed to send alert: {sns_error}")
+
+def lambda_handler(event, context):
+    logger.info(f"Received event: {event}")
+
+    action = event.get("action")
+    instance_ids = event.get("instance_ids")
+
+    if not action or not instance_ids:
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Error: Missing action or instance_ids in the event.')
+        }
+
+    if not isinstance(instance_ids, list):
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Error: instance_ids must be a list.')
+        }
+
+    current_day = datetime.datetime.now().strftime('%A')
+
+    if current_day == "Sunday" and action == "start":
+        allowed_instances = list(set(instance_ids) & set(SUNDAY_ALLOWED_INSTANCES))
+
+        if not allowed_instances:
+            logger.info(f"No instances to start on Sunday: {instance_ids}")
+            return {
+                'statusCode': 200,
+                'body': json.dumps("No instances are allowed to start on Sunday.")
+            }
+        instance_ids = allowed_instances
+
+    # ✅ Now properly indented inside lambda_handler:
+    try:
+        if action == 'start':
+            start_response = ec2.start_instances(InstanceIds=instance_ids)
+            logger.info(f"Start response: {start_response}")
+            statuses = get_instance_status(instance_ids)
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'message': f'EC2 Instances {instance_ids} started successfully.',
+                    'statuses': statuses
+                })
+            }
+
+        elif action == 'stop':
+            stop_response = ec2.stop_instances(InstanceIds=instance_ids)
+            logger.info(f"Stop response: {stop_response}")
+            statuses = get_instance_status(instance_ids)
+            return {
+                'statusCode': 200,
+                'body': json.dumps({
+                    'message': f'EC2 Instances {instance_ids} stopped successfully.',
+                    'statuses': statuses
+                })
+            }
+
+        else:
+            return {
+                'statusCode': 400,
+                'body': json.dumps('Error: Action must be either "start" or "stop".')
+            }
+
+    except (BotoCoreError, ClientError) as e:
+        error_msg = f"Boto3 error occurred: {str(e)}"
+        logger.error(error_msg)
+        send_alert("Instance Scheduler - Boto3 Error", error_msg)
+        return {
+            'statusCode': 500,
+            'body': json.dumps(error_msg)
+        }
+
+    except Exception as e:
+        error_msg = f"Unexpected error occurred: {str(e)}"
+        logger.error(error_msg)
+        send_alert("Instance Scheduler - Unexpected Error", error_msg)
+        return {
+            'statusCode': 500,
+            'body': json.dumps(error_msg)
+        }
