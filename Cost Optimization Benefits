@@ -1,0 +1,32 @@
+Before Implementation
+Instances Running:
+24 Hours/Day
+
+Monthly Runtime:
+720 Hours/Month
+After Implementation
+Instances Running:
+10 Hours/Day
+
+Monthly Runtime:
+~220 Hours/Month
+Savings
+Runtime Reduction:
+~70%
+
+Monthly Cost Savings:
+Significant reduction depending on instance type and count.
+Business Impact
+Reduced unnecessary AWS spending.
+Eliminated manual start/stop operations.
+Improved operational efficiency.
+Enabled standardized infrastructure governance.
+Increased visibility through CloudWatch monitoring.
+Skills Demonstrated
+AWS Cost Optimization
+Infrastructure Automation
+AWS Lambda Development
+EventBridge Scheduling
+IAM Policy Management
+Cloud Monitoring
+DevOps Best Practices
